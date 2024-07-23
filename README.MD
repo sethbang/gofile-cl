@@ -1,5 +1,3 @@
-
-
 # GoFile Uploader
 
 This repository contains a bash script and an HTML file for uploading files to GoFile, a free file sharing and storage service.
@@ -8,6 +6,21 @@ This repository contains a bash script and an HTML file for uploading files to G
 
 1. `cl_gofile_multi.sh`: A Bash script for uploading multiple files to GoFile.
 2. `index.html`: An HTML file for generating commands to use with the Bash script.
+
+## Quick Start
+
+1. Clone this repository or download the files.
+2. Make the script executable:
+   ```bash
+   chmod +x cl_gofile_multi.sh
+   ```
+3. Set up your GoFile authentication token:
+   ```bash
+   ./cl_gofile_multi.sh -u
+   ```
+   This will prompt you to enter your GoFile authentication token and create a config file to store it.
+
+4. You're now ready to use the script for uploading files!
 
 ## cl_gofile_multi.sh
 
@@ -51,17 +64,17 @@ This Bash script allows you to upload multiple files to GoFile with various opti
 
 1. Upload files from the current directory:
    ```bash
-   ./cl_gofile_multi.sh -a "your_auth_token"
+   ./cl_gofile_multi.sh
    ```
 
 2. Upload files recursively from a specific directory:
    ```bash
-   ./cl_gofile_multi.sh -d "/path/to/directory" -a "your_auth_token" -r
+   ./cl_gofile_multi.sh -d "/path/to/directory" -r
    ```
 
 3. Upload files to a specific GoFile folder:
    ```bash
-   ./cl_gofile_multi.sh -a "your_auth_token" -f "gofile_folder_id"
+   ./cl_gofile_multi.sh -f "gofile_folder_id"
    ```
 
 4. Update the stored authentication token:
