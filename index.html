@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gofile Upload Command Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #7f8c8d;
+        }
+
+        form {
+            display: grid;
+            gap: 20px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #3498db;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        button {
+            background-color: #2ecc71;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #27ae60;
+        }
+
+        #command {
+            background-color: #ecf0f1;
+            padding: 20px;
+            margin-top: 30px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            font-family: monospace;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #34495e;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Gofile Upload Command Generator</h1>
+    <p class="description">Generate a command for the cl_gofile_multi.sh script to upload files to Gofile.</p>
+
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="directory">Directory:
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">The directory containing files to upload. Default is './'</span>
+                </span>
+            </label>
+            <input type="text" id="directory" name="directory" value="./">
+        </div>
+
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="useAuthToken">
+                    <span class="slider"></span>
+                </label>
+                <span>Use Auth Token</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to use an authentication token for the upload</span>
+                </span>
+            </div>
+        </div>
+
+        <div id="authTokenContainer" class="form-group" style="display: none;">
+            <label for="authToken">Auth Token:</label>
+            <input type="text" id="authToken" name="authToken">
+        </div>
+
+        <div class="form-group">
+            <label for="folderId">Folder ID:
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">The ID of the folder to upload to on Gofile</span>
+                </span>
+            </label>
+            <input type="text" id="folderId" name="folderId">
+        </div>
+
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="recursive" name="recursive">
+                    <span class="slider"></span>
+                </label>
+                <span>Recursive</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to upload files from subdirectories</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="osType">OS Type:
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Select your operating system or leave as auto-detect</span>
+                </span>
+            </label>
+            <select id="osType" name="osType">
+                <option value="">Auto-detect</option>
+                <option value="macos">macOS</option>
+                <option value="linux">Linux</option>
+                <option value="windows">Windows</option>
+            </select>
+        </div>
+
+        <button type="submit">Generate Command</button>
+    </form>
+
+    <div id="command"></div>
+
+    <script>
+        const useAuthTokenToggle = document.getElementById('useAuthToken');
+        const authTokenContainer = document.getElementById('authTokenContainer');
+
+        useAuthTokenToggle.addEventListener('change', function () {
+            authTokenContainer.style.display = this.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const directory = document.getElementById('directory').value;
+            const useAuthToken = document.getElementById('useAuthToken').checked;
+            const authToken = document.getElementById('authToken').value;
+            const folderId = document.getElementById('folderId').value;
+            const recursive = document.getElementById('recursive').checked;
+            const osType = document.getElementById('osType').value;
+
+            let command = `./cl_gofile_multi.sh`;
+
+            if (directory !== './') command += ` -d "${directory}"`;
+            if (useAuthToken && authToken) command += ` -a "${authToken}"`;
+            if (folderId) command += ` -f "${folderId}"`;
+            if (recursive) command += ` -r`;
+            if (osType) command += ` -o ${osType}`;
+
+            document.getElementById('command').textContent = command;
+        });
+    </script>
+</body>
+
+</html>
