@@ -124,15 +124,39 @@
             background-color: #27ae60;
         }
 
-        #command {
-            background-color: #ecf0f1;
-            padding: 20px;
+        #command-container {
+            display: flex;
+            flex-direction: column;
             margin-top: 30px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #command {
+            padding: 20px;
             white-space: pre-wrap;
             word-break: break-all;
-            border-radius: 5px;
-            border: 1px solid #bdc3c7;
             font-family: monospace;
+            border: none;
+            background-color: transparent;
+            min-height: 60px;
+        }
+
+        #copy-button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+
+        #copy-button:hover {
+            background-color: #2980b9;
         }
 
         .tooltip {
@@ -237,7 +261,10 @@
         <button type="submit">Generate Command</button>
     </form>
 
-    <div id="command"></div>
+    <div id="command-container">
+        <pre id="command"></pre>
+        <button id="copy-button">Copy Command</button>
+    </div>
 
     <script>
         const useAuthTokenToggle = document.getElementById('useAuthToken');
@@ -266,6 +293,15 @@
             if (osType) command += ` -o ${osType}`;
 
             document.getElementById('command').textContent = command;
+        });
+
+        document.getElementById('copy-button').addEventListener('click', function () {
+            const commandText = document.getElementById('command').textContent;
+            navigator.clipboard.writeText(commandText).then(function () {
+                alert('Command copied to clipboard!');
+            }, function (err) {
+                console.error('Could not copy text: ', err);
+            });
         });
     </script>
 </body>
