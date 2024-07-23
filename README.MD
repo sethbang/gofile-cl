@@ -22,6 +22,10 @@ This Bash script allows you to upload multiple files to GoFile with various opti
 - OS detection (macOS, Linux, Windows)
 - Authentication token management
 
+### Screenshot
+
+![GoFile Uploader HTML Interface](./command_gen.png)
+
 ### Prerequisites
 
 - Bash shell
