@@ -99,9 +99,9 @@ format_time() {
 format_size() {
     local size=$1
     if [ $size -ge 1073741824 ]; then
-        printf "%.2f GB" $(echo "scale=2; $size/1073741824" | bc)
+        printf "%.2f GB" $(awk "BEGIN {printf \"%.2f\", $size/1073741824}")
     elif [ $size -ge 1048576 ]; then
-        printf "%.2f MB" $(echo "scale=2; $size/1048576" | bc)
+        printf "%.2f MB" $(awk "BEGIN {printf \"%.2f\", $size/1048576}")
     else
         printf "%d bytes" $size
     fi
