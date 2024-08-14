@@ -113,13 +113,35 @@ fi
 
 # Function to get available 'na' server
 get_na_server() {
-    local server_info=$(curl -s -X GET 'https://api.gofile.io/servers')
-    local na_server=$(echo "$server_info" | jq -r '.data.servers[] | select(.zone == "na") | .name' | head -n 1)
-    if [ -z "$na_server" ]; then
-        echo "No 'na' server available. Exiting." >&2
-        exit 1
-    fi
-    echo "$na_server"
+    local max_attempts=5
+    local attempt=1
+    local server_info
+    local na_server
+
+    while [ $attempt -le $max_attempts ]; do
+        server_info=$(curl -s -X GET 'https://api.gofile.io/servers')
+        if [ $? -ne 0 ]; then
+            echo "Failed to fetch server info. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2
+            echo "You can force quit the script with Ctrl+C if needed." >&2
+            sleep 60
+            ((attempt++))
+            continue
+        fi
+
+        na_server=$(echo "$server_info" | jq -r '.data.servers[] | select(.zone == "na") | .name' | head -n 1)
+        if [ -n "$na_server" ]; then
+            echo "$na_server"
+            return 0
+        fi
+
+        echo "No 'na' server available. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2
+        echo "You can force quit the script with Ctrl+C if needed." >&2
+        sleep 60
+        ((attempt++))
+    done
+
+    echo "Failed to get an 'na' server after $max_attempts attempts. Exiting." >&2
+    exit 1
 }
 
 # Function to format time
@@ -162,27 +184,16 @@ else
 fi
 
 if [ "$recursive" = true ]; then
-    if [ "$os_type" = "windows" ]; then
-        find_opts="-type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
-    else
-        find_opts="-type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
-    fi
+    find_opts="-type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
 else
-    if [ "$os_type" = "windows" ]; then
-        find_opts="-maxdepth 1 -type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
-    else
-        find_opts="-maxdepth 1 -type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
-    fi
+    find_opts="-maxdepth 1 -type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
 fi
 
 # Get total number of files and size
 if [ "$os_type" = "macos" ]; then
     total_files=$(eval find "$directory" $find_opts | wc -l)
     total_size=$(eval find "$directory" $find_opts -print0 | xargs -0 stat -f%z | awk '{sum+=$1} END {print sum}')
-elif [ "$os_type" = "linux" ]; then
-    total_files=$(eval find "$directory" $find_opts | wc -l)
-    total_size=$(eval find "$directory" $find_opts -print0 | xargs -0 stat -c%s | awk '{sum+=$1} END {print sum}')
-elif [ "$os_type" = "windows" ]; then
+else
     total_files=$(eval find "$directory" $find_opts | wc -l)
     total_size=$(eval find "$directory" $find_opts -print0 | xargs -0 stat -c%s | awk '{sum+=$1} END {print sum}')
 fi
@@ -201,12 +212,7 @@ if [ "$os_type" = "macos" ]; then
       file_size=$(stat -f%z "$file")
       echo "$file_size $file"
     done | sort -n | cut -d' ' -f2- > "$temp_file"
-elif [ "$os_type" = "linux" ]; then
-    eval find "$directory" $find_opts -print0 | while IFS= read -r -d '' file; do
-      file_size=$(stat -c%s "$file")
-      echo "$file_size $file"
-    done | sort -n | cut -d' ' -f2- > "$temp_file"
-elif [ "$os_type" = "windows" ]; then
+else
     eval find "$directory" $find_opts -print0 | while IFS= read -r -d '' file; do
       file_size=$(stat -c%s "$file")
       echo "$file_size $file"
@@ -220,9 +226,7 @@ while read -r file; do
     file_name=$(basename "$file")
     if [ "$os_type" = "macos" ]; then
         file_size=$(stat -f%z "$file")
-    elif [ "$os_type" = "linux" ]; then
-        file_size=$(stat -c%s "$file")
-    elif [ "$os_type" = "windows" ]; then
+    else
         file_size=$(stat -c%s "$file")
     fi
     
