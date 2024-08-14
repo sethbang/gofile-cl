@@ -227,6 +227,7 @@ while read -r file; do
     fi
     
     formatted_size=$(format_size $file_size)
+    echo "=========================================="
     echo "Uploading file $current_file of $total_files: $file_name ($formatted_size)"
     echo "Overall progress: $((uploaded_size * 100 / total_size))% completed"
     
@@ -251,13 +252,12 @@ while read -r file; do
     
     upload_status=$(echo "$curl_output" | jq -r '.status')
     download_page=$(echo "$curl_output" | jq -r '.data.downloadPage')
-    file_id=$(echo "$curl_output" | jq -r '.data.fileId')
     
+    echo
     if [ "$upload_status" == "ok" ]; then
-      echo -e "\nUploaded $file_name successfully!"
+      echo "Uploaded $file_name successfully!"
       echo "Time taken: $(format_time $duration)"
       echo "Download Page: $download_page"
-      echo "File ID: $file_id"
       
       if [ "$delete_after_upload" = true ]; then
         rm "$file"
@@ -267,12 +267,13 @@ while read -r file; do
         echo "File moved to completed folder: $file_name"
       fi
     else
-      echo -e "\nFailed to upload $file_name"
+      echo "Failed to upload $file_name"
       echo "Error: $curl_output"
     fi
     
     echo "Overall progress: $((uploaded_size * 100 / total_size))% completed"
-    echo "----------------------------------------"
+    echo "=========================================="
+    echo
   fi
 done < "$temp_file"
 
