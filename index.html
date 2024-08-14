@@ -187,6 +187,29 @@
             visibility: visible;
             opacity: 1;
         }
+
+        .min-size-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #minSizeValue {
+            width: 100px;
+        }
+
+        #minSizeUnit {
+            width: 70px;
+        }
+
+        .warning {
+            background-color: #f39c12;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 
@@ -258,6 +281,65 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="useMinSize" name="useMinSize" checked>
+                    <span class="slider"></span>
+                </label>
+                <span>Use Minimum File Size</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to set a minimum file size for upload</span>
+                </span>
+            </div>
+        </div>
+
+        <div id="minSizeContainer" class="form-group">
+            <label for="minSizeValue">Minimum File Size:</label>
+            <div class="min-size-container">
+                <input type="number" id="minSizeValue" name="minSizeValue" value="1" min="1">
+                <select id="minSizeUnit" name="minSizeUnit">
+                    <option value="B">B</option>
+                    <option value="KB">KB</option>
+                    <option value="MB" selected>MB</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="deleteAfterUpload" name="deleteAfterUpload">
+                    <span class="slider"></span>
+                </label>
+                <span>Delete After Upload</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to delete files after successful upload (CAUTION: This is
+                        irreversible!)</span>
+                </span>
+            </div>
+            <div id="deleteWarning" class="warning">
+                WARNING: This option will permanently delete files after successful upload. Use with extreme caution!
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="moveAfterUpload" name="moveAfterUpload">
+                    <span class="slider"></span>
+                </label>
+                <span>Move After Upload</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to move files to a 'completed' folder after successful
+                        upload</span>
+                </span>
+            </div>
+            <div id="moveWarning" class="warning">
+                Note: This option will move files to a 'completed' folder after successful upload.
+            </div>
+        </div>
+
         <button type="submit">Generate Command</button>
     </form>
 
@@ -269,9 +351,35 @@
     <script>
         const useAuthTokenToggle = document.getElementById('useAuthToken');
         const authTokenContainer = document.getElementById('authTokenContainer');
+        const useMinSizeToggle = document.getElementById('useMinSize');
+        const minSizeContainer = document.getElementById('minSizeContainer');
+        const deleteAfterUploadToggle = document.getElementById('deleteAfterUpload');
+        const deleteWarning = document.getElementById('deleteWarning');
+        const moveAfterUploadToggle = document.getElementById('moveAfterUpload');
+        const moveWarning = document.getElementById('moveWarning');
 
         useAuthTokenToggle.addEventListener('change', function () {
             authTokenContainer.style.display = this.checked ? 'block' : 'none';
+        });
+
+        useMinSizeToggle.addEventListener('change', function () {
+            minSizeContainer.style.display = this.checked ? 'block' : 'none';
+        });
+
+        deleteAfterUploadToggle.addEventListener('change', function () {
+            deleteWarning.style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                moveAfterUploadToggle.checked = false;
+                moveWarning.style.display = 'none';
+            }
+        });
+
+        moveAfterUploadToggle.addEventListener('change', function () {
+            moveWarning.style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                deleteAfterUploadToggle.checked = false;
+                deleteWarning.style.display = 'none';
+            }
         });
 
         document.getElementById('uploadForm').addEventListener('submit', function (e) {
@@ -283,6 +391,11 @@
             const folderId = document.getElementById('folderId').value;
             const recursive = document.getElementById('recursive').checked;
             const osType = document.getElementById('osType').value;
+            const useMinSize = document.getElementById('useMinSize').checked;
+            const minSizeValue = document.getElementById('minSizeValue').value;
+            const minSizeUnit = document.getElementById('minSizeUnit').value;
+            const deleteAfterUpload = document.getElementById('deleteAfterUpload').checked;
+            const moveAfterUpload = document.getElementById('moveAfterUpload').checked;
 
             let command = `./cl_gofile_multi.sh`;
 
@@ -291,6 +404,9 @@
             if (folderId) command += ` -f "${folderId}"`;
             if (recursive) command += ` -r`;
             if (osType) command += ` -o ${osType}`;
+            if (useMinSize) command += ` -s "${minSizeValue}${minSizeUnit}"`;
+            if (deleteAfterUpload) command += ` -D`;
+            if (moveAfterUpload) command += ` -m`;
 
             document.getElementById('command').textContent = command;
         });

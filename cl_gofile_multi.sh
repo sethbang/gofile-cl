@@ -28,9 +28,12 @@ default_directory="./"
 default_folderid=""
 recursive=false
 os_type=""
+min_size=""
+delete_after_upload=false
+move_after_upload=false
 
 # Parse command-line arguments
-while getopts ":d:a:f:ro:u" opt; do
+while getopts ":d:a:f:ro:u:s:Dm" opt; do
   case $opt in
     d) directory="$OPTARG"
     ;;
@@ -47,8 +50,14 @@ while getopts ":d:a:f:ro:u" opt; do
        update_config "$new_token"
        exit 0
     ;;
+    s) min_size="$OPTARG"
+    ;;
+    D) delete_after_upload=true
+    ;;
+    m) move_after_upload=true
+    ;;
     \?) echo "Invalid option -$OPTARG" >&2
-        echo "Usage: $0 [-d directory] [-a auth_token] [-f folderid] [-r] [-o os_type] [-u]"
+        echo "Usage: $0 [-d directory] [-a auth_token] [-f folderid] [-r] [-o os_type] [-u] [-s min_size] [-D] [-m]"
         exit 1
     ;;
   esac
@@ -62,6 +71,30 @@ folderid="${folderid:-$default_folderid}"
 if [ -z "$auth_token" ]; then
     echo "Error: No auth token provided. Please set it in the config file or use the -a flag."
     exit 1
+fi
+
+# Confirmation for delete option
+if [ "$delete_after_upload" = true ]; then
+    echo "WARNING: The delete option (-D) will permanently remove files after successful upload."
+    echo "To confirm, please type exactly: 'I understand and accept the risk of deleting files'"
+    read -r confirmation
+    if [ "$confirmation" != "I understand and accept the risk of deleting files" ]; then
+        echo "Confirmation failed. Exiting without deleting files."
+        exit 1
+    fi
+fi
+
+# Confirmation for move option
+if [ "$move_after_upload" = true ]; then
+    echo "The move option (-m) will move files to a 'completed' folder after successful upload."
+    echo "To confirm, please type exactly: 'I understand and accept the file movement'"
+    read -r confirmation
+    if [ "$confirmation" != "I understand and accept the file movement" ]; then
+        echo "Confirmation failed. Exiting without moving files."
+        exit 1
+    fi
+    # Create 'completed' folder if it doesn't exist
+    mkdir -p "${directory}/completed"
 fi
 
 # Detect OS if not specified
@@ -107,18 +140,38 @@ format_size() {
     fi
 }
 
-# Set find options based on recursive flag and OS
+# Function to convert size to bytes
+convert_to_bytes() {
+    local size="$1"
+    local unit="${size: -2}"
+    local value="${size%??}"
+
+    case "$unit" in
+        KB|kb) echo $((value * 1024)) ;;
+        MB|mb) echo $((value * 1024 * 1024)) ;;
+        *) echo "$size" ;;
+    esac
+}
+
+# Set find options based on recursive flag, OS, and min_size
+if [ -n "$min_size" ]; then
+    min_size_bytes=$(convert_to_bytes "$min_size")
+    size_option="-size +${min_size_bytes}c"
+else
+    size_option=""
+fi
+
 if [ "$recursive" = true ]; then
     if [ "$os_type" = "windows" ]; then
-        find_opts="-type f -size +1M ! -name '.*' ! -name 'SYNOINDEX_*'"
+        find_opts="-type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
     else
-        find_opts="-type f -size +1M ! -name '.*' ! -name 'SYNOINDEX_*'"
+        find_opts="-type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
     fi
 else
     if [ "$os_type" = "windows" ]; then
-        find_opts="-maxdepth 1 -type f -size +1M ! -name '.*' ! -name 'SYNOINDEX_*'"
+        find_opts="-maxdepth 1 -type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
     else
-        find_opts="-maxdepth 1 -type f -size +1M ! -name '.*' ! -name 'SYNOINDEX_*'"
+        find_opts="-maxdepth 1 -type f $size_option ! -name '.*' ! -name 'SYNOINDEX_*'"
     fi
 fi
 
@@ -205,6 +258,14 @@ while read -r file; do
       echo "Time taken: $(format_time $duration)"
       echo "Download Page: $download_page"
       echo "File ID: $file_id"
+      
+      if [ "$delete_after_upload" = true ]; then
+        rm "$file"
+        echo "File deleted: $file_name"
+      elif [ "$move_after_upload" = true ]; then
+        mv "$file" "${directory}/completed/"
+        echo "File moved to completed folder: $file_name"
+      fi
     else
       echo -e "\nFailed to upload $file_name"
       echo "Error: $curl_output"
