@@ -340,6 +340,19 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <div class="toggle-container">
+                <label class="toggle">
+                    <input type="checkbox" id="enableLogging" name="enableLogging">
+                    <span class="slider"></span>
+                </label>
+                <span>Enable Logging</span>
+                <span class="tooltip">ⓘ
+                    <span class="tooltiptext">Enable to create a detailed log file of the upload process</span>
+                </span>
+            </div>
+        </div>
+
         <button type="submit">Generate Command</button>
     </form>
 
@@ -396,6 +409,7 @@
             const minSizeUnit = document.getElementById('minSizeUnit').value;
             const deleteAfterUpload = document.getElementById('deleteAfterUpload').checked;
             const moveAfterUpload = document.getElementById('moveAfterUpload').checked;
+            const enableLogging = document.getElementById('enableLogging').checked;
 
             let command = `./cl_gofile_multi.sh`;
 
@@ -405,8 +419,9 @@
             if (recursive) command += ` -r`;
             if (osType) command += ` -o ${osType}`;
             if (useMinSize) command += ` -s "${minSizeValue}${minSizeUnit}"`;
-            if (deleteAfterUpload) command += ` -D`;
+            if (deleteAfterUpload) command += ` -X`;
             if (moveAfterUpload) command += ` -m`;
+            if (enableLogging) command += ` -l`;
 
             document.getElementById('command').textContent = command;
         });

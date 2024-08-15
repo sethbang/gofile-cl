@@ -1,31 +1,11 @@
 #!/bin/bash
 
-# Default values
-LOGGING_ENABLED=false
-LOG_FILE="gofile_upload.log"
-default_directory="./"
-default_folderid=""
-recursive=false
-os_type=""
-min_size=""
-delete_after_upload=false
-move_after_upload=false
-
-# Function to handle logging
-log() {
-    if [ "$LOGGING_ENABLED" = true ]; then
-        tee -a "$LOG_FILE"
-    else
-        cat
-    fi
-}
-
 # Function to create or update the config file
 update_config() {
     local token="$1"
     echo "auth_token=\"$token\"" > "$config_file"
     chmod 600 "$config_file"
-    echo "Auth token updated in $config_file" | log
+    echo "Auth token updated in $config_file"
 }
 
 # Config file location
@@ -39,30 +19,47 @@ fi
 auth_token=""
 
 # Check if config file exists, if so, source it
-# shellcheck source=/dev/null
 if [ -f "$config_file" ]; then
     source "$config_file"
 fi
 
+# Set other default values
+default_directory="./"
+default_folderid=""
+recursive=false
+os_type=""
+min_size=""
+delete_after_upload=false
+move_after_upload=false
+
 # Parse command-line arguments
-while getopts ":d:a:f:ro:u:s:Xml" opt; do
+while getopts ":d:a:f:ro:u:s:Dm" opt; do
   case $opt in
-    d) directory="$OPTARG" ;;
-    a) auth_token="$OPTARG" ;;
-    f) folderid="$OPTARG" ;;
-    r) recursive=true ;;
-    o) os_type="$OPTARG" ;;
-    u) echo "Please enter your new GoFile auth token:" | log
+    d) directory="$OPTARG"
+    ;;
+    a) auth_token="$OPTARG"
+    ;;
+    f) folderid="$OPTARG"
+    ;;
+    r) recursive=true
+    ;;
+    o) os_type="$OPTARG"
+    ;;
+    u) echo "Please enter your new GoFile auth token:"
        read -r new_token
        update_config "$new_token"
-       exit 0 ;;
-    s) min_size="$OPTARG" ;;
-    X) delete_after_upload=true ;;
-    m) move_after_upload=true ;;
-    l) LOGGING_ENABLED=true ;;
-    \?) echo "Invalid option -$OPTARG" >&2 | log
-        echo "Usage: $0 [-d directory] [-a auth_token] [-f folderid] [-r] [-o os_type] [-u] [-s min_size] [-X] [-m] [-l]" | log
-        exit 1 ;;
+       exit 0
+    ;;
+    s) min_size="$OPTARG"
+    ;;
+    D) delete_after_upload=true
+    ;;
+    m) move_after_upload=true
+    ;;
+    \?) echo "Invalid option -$OPTARG" >&2
+        echo "Usage: $0 [-d directory] [-a auth_token] [-f folderid] [-r] [-o os_type] [-u] [-s min_size] [-D] [-m]"
+        exit 1
+    ;;
   esac
 done
 
@@ -72,28 +69,28 @@ folderid="${folderid:-$default_folderid}"
 
 # Check if auth_token is set, if not, exit with an error
 if [ -z "$auth_token" ]; then
-    echo "Error: No auth token provided. Please set it in the config file or use the -a flag." | log
+    echo "Error: No auth token provided. Please set it in the config file or use the -a flag."
     exit 1
 fi
 
 # Confirmation for delete option
 if [ "$delete_after_upload" = true ]; then
-    echo "WARNING: The delete option (-X) will permanently remove files after successful upload." | log
-    echo "To confirm, please type exactly: 'I understand and accept the risk of deleting files'" | log
+    echo "WARNING: The delete option (-D) will permanently remove files after successful upload."
+    echo "To confirm, please type exactly: 'I understand and accept the risk of deleting files'"
     read -r confirmation
     if [ "$confirmation" != "I understand and accept the risk of deleting files" ]; then
-        echo "Confirmation failed. Exiting without deleting files." | log
+        echo "Confirmation failed. Exiting without deleting files."
         exit 1
     fi
 fi
 
 # Confirmation for move option
 if [ "$move_after_upload" = true ]; then
-    echo "The move option (-m) will move files to a 'completed' folder after successful upload." | log
-    echo "To confirm, please type exactly: 'I confirm the file movement'" | log
+    echo "The move option (-m) will move files to a 'completed' folder after successful upload."
+    echo "To confirm, please type exactly: 'I confirm the file movement'"
     read -r confirmation
     if [ "$confirmation" != "I confirm the file movement" ]; then
-        echo "Confirmation failed. Exiting without moving files." | log
+        echo "Confirmation failed. Exiting without moving files."
         exit 1
     fi
     # Create 'completed' folder if it doesn't exist
@@ -109,7 +106,7 @@ if [ -z "$os_type" ]; then
     elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
         os_type="windows"
     else
-        echo "Unsupported OS. Please specify using -o option (macos, linux, or windows)." | log
+        echo "Unsupported OS. Please specify using -o option (macos, linux, or windows)."
         exit 1
     fi
 fi
@@ -122,15 +119,16 @@ get_na_server() {
     local na_server
 
     while [ $attempt -le $max_attempts ]; do
-        if ! server_info=$(curl -s -X GET 'https://api.gofile.io/servers'); then
+        server_info=$(curl -s -X GET 'https://api.gofile.io/servers')
+        if [ $? -ne 0 ]; then
             if [ $attempt -le 5 ]; then
-                echo "Failed to fetch server info. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2 | log
+                echo "Failed to fetch server info. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2
                 sleep_time=60
             else
-                echo "Failed to fetch server info. Retrying in 300 seconds (attempt $attempt of $max_attempts)..." >&2 | log
+                echo "Failed to fetch server info. Retrying in 300 seconds (attempt $attempt of $max_attempts)..." >&2
                 sleep_time=300
             fi
-            echo "You can force quit the script with Ctrl+C if needed." >&2 | log
+            echo "You can force quit the script with Ctrl+C if needed." >&2
             sleep $sleep_time
             ((attempt++))
             continue
@@ -143,18 +141,18 @@ get_na_server() {
         fi
 
         if [ $attempt -le 5 ]; then
-            echo "No 'na' server available. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2 | log
+            echo "No 'na' server available. Retrying in 60 seconds (attempt $attempt of $max_attempts)..." >&2
             sleep_time=60
         else
-            echo "No 'na' server available. Retrying in 300 seconds (attempt $attempt of $max_attempts)..." >&2 | log
+            echo "No 'na' server available. Retrying in 300 seconds (attempt $attempt of $max_attempts)..." >&2
             sleep_time=300
         fi
-        echo "You can force quit the script with Ctrl+C if needed." >&2 | log
+        echo "You can force quit the script with Ctrl+C if needed." >&2
         sleep $sleep_time
         ((attempt++))
     done
 
-    echo "Failed to get an 'na' server after $max_attempts attempts. Exiting." >&2 | log
+    echo "Failed to get an 'na' server after $max_attempts attempts. Exiting." >&2
     exit 1
 }
 
@@ -168,11 +166,11 @@ format_time() {
 format_size() {
     local size=$1
     if [ $size -ge 1073741824 ]; then
-        awk -v size="$size" 'BEGIN {printf "%.2f GB", size/1073741824}'
+        printf "%.2f GB" $(awk "BEGIN {printf \"%.2f\", $size/1073741824}")
     elif [ $size -ge 1048576 ]; then
-        awk -v size="$size" 'BEGIN {printf "%.2f MB", size/1048576}'
+        printf "%.2f MB" $(awk "BEGIN {printf \"%.2f\", $size/1048576}")
     else
-        echo "$size bytes"
+        printf "%d bytes" $size
     fi
 }
 
@@ -205,11 +203,11 @@ fi
 
 # Get total number of files and size
 if [ "$os_type" = "macos" ]; then
-    total_files=$(eval find "$directory" "$find_opts" | wc -l)
-    total_size=$(eval find "$directory" "$find_opts" -print0 | xargs -0 stat -f%z | awk '{sum+=$1} END {print sum}')
+    total_files=$(eval find "$directory" $find_opts | wc -l)
+    total_size=$(eval find "$directory" $find_opts -print0 | xargs -0 stat -f%z | awk '{sum+=$1} END {print sum}')
 else
-    total_files=$(eval find "$directory" "$find_opts" | wc -l)
-    total_size=$(eval find "$directory" "$find_opts" -print0 | xargs -0 stat -c%s | awk '{sum+=$1} END {print sum}')
+    total_files=$(eval find "$directory" $find_opts | wc -l)
+    total_size=$(eval find "$directory" $find_opts -print0 | xargs -0 stat -c%s | awk '{sum+=$1} END {print sum}')
 fi
 
 # Initialize counters
@@ -222,12 +220,12 @@ trap 'rm -f "$temp_file"' EXIT
 
 # Sort files by size and save to temporary file
 if [ "$os_type" = "macos" ]; then
-    eval find "$directory" "$find_opts" -print0 | while IFS= read -r -d '' file; do
+    eval find "$directory" $find_opts -print0 | while IFS= read -r -d '' file; do
       file_size=$(stat -f%z "$file")
       echo "$file_size $file"
     done | sort -n | cut -d' ' -f2- > "$temp_file"
 else
-    eval find "$directory" "$find_opts" -print0 | while IFS= read -r -d '' file; do
+    eval find "$directory" $find_opts -print0 | while IFS= read -r -d '' file; do
       file_size=$(stat -c%s "$file")
       echo "$file_size $file"
     done | sort -n | cut -d' ' -f2- > "$temp_file"
@@ -244,14 +242,14 @@ while read -r file; do
         file_size=$(stat -c%s "$file")
     fi
     
-    formatted_size=$(format_size "$file_size")
-    echo "==========================================" | log
-    echo "Uploading file $current_file of $total_files: $file_name ($formatted_size)" | log
-    echo "Overall progress: $((uploaded_size * 100 / total_size))% completed" | log
+    formatted_size=$(format_size $file_size)
+    echo "=========================================="
+    echo "Uploading file $current_file of $total_files: $file_name ($formatted_size)"
+    echo "Overall progress: $((uploaded_size * 100 / total_size))% completed"
     
     # Get the 'na' server for this upload
     storenum=$(get_na_server)
-    echo "Using server: $storenum" | log
+    echo "Using server: $storenum"
     
     # GoFile API endpoint
     url="https://$storenum.gofile.io/contents/uploadfile"
@@ -271,29 +269,29 @@ while read -r file; do
     upload_status=$(echo "$curl_output" | jq -r '.status')
     download_page=$(echo "$curl_output" | jq -r '.data.downloadPage')
     
-    echo | log
+    echo
     if [ "$upload_status" == "ok" ]; then
-      echo "Uploaded $file_name successfully!" | log
-      echo "Time taken: $(format_time $duration)" | log
-      echo "Download Page: $download_page" | log
+      echo "Uploaded $file_name successfully!"
+      echo "Time taken: $(format_time $duration)"
+      echo "Download Page: $download_page"
       
       if [ "$delete_after_upload" = true ]; then
         rm "$file"
-        echo "File deleted: $file_name" | log
+        echo "File deleted: $file_name"
       elif [ "$move_after_upload" = true ]; then
         mv "$file" "${directory}/completed/"
-        echo "File moved to completed folder: $file_name" | log
+        echo "File moved to completed folder: $file_name"
       fi
     else
-      echo "Failed to upload $file_name" | log
-      echo "Error: $curl_output" | log
+      echo "Failed to upload $file_name"
+      echo "Error: $curl_output"
     fi
     
-    echo "Overall progress: $((uploaded_size * 100 / total_size))% completed" | log
-    echo "==========================================" | log
-    echo | log
+    echo "Overall progress: $((uploaded_size * 100 / total_size))% completed"
+    echo "=========================================="
+    echo
   fi
 done < "$temp_file"
 
-total_formatted_size=$(format_size "$total_size")
-echo "All files uploaded. Total size: $total_formatted_size. Total time: $(format_time $SECONDS)" | log
+total_formatted_size=$(format_size $total_size)
+echo "All files uploaded. Total size: $total_formatted_size. Total time: $(format_time $SECONDS)"
